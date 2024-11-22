@@ -37,8 +37,7 @@ Pasos de Configuración
 
    Esto reinstalará los archivos necesarios en "windows/" y configurará de nuevo los archivos de compilación.
    o si tienes problemas pon la ruta completa del proyecto:
-		```bash
-
+   
        flutter create [ruta_abosuluta_del_proyecto]
 
 6. Verificar que CMake esté instalado y en el PATH
