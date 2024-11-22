@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "299061353890",
+    "project_id": "app-agricultor-c216e",
+    "storage_bucket": "app-agricultor-c216e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:299061353890:android:7c273d7af57b8e6f3926fb",
+        "android_client_info": {
+          "package_name": "com.example.agromarket_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhmL9HSAyw8mR2ZP622jspD02V-KdGLy0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
