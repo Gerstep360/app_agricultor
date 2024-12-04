@@ -3,34 +3,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:latlong2/latlong.dart' as latlng;
+import 'package:provider/provider.dart';
 import 'package:agromarket_app/models/Agricultor/terreno.dart';
-import 'package:agromarket_app/services/api_service.dart';
 import 'package:agromarket_app/ui/Themes/theme.dart';
 import 'package:agromarket_app/ui/screens/maps/map.dart';
+import 'package:agromarket_app/ui/screens/productor/terreno/view_models/terreno_view_model.dart';
 
-class TerrenoScreen extends StatefulWidget {
+class TerrenoScreen extends StatelessWidget {
   final int agricultorId;
 
-  const TerrenoScreen({super.key, required this.agricultorId});
+  const TerrenoScreen({Key? key, required this.agricultorId}) : super(key: key);
 
   @override
-  State<TerrenoScreen> createState() => _TerrenoScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => TerrenoViewModel(agricultorId: agricultorId),
+      child: const TerrenoScreenContent(),
+    );
+  }
 }
 
-class _TerrenoScreenState extends State<TerrenoScreen>
+class TerrenoScreenContent extends StatefulWidget {
+  const TerrenoScreenContent({Key? key}) : super(key: key);
+
+  @override
+  State<TerrenoScreenContent> createState() => _TerrenoScreenContentState();
+}
+
+class _TerrenoScreenContentState extends State<TerrenoScreenContent>
     with SingleTickerProviderStateMixin {
-  late ApiService _apiService;
   late AnimationController _animationController;
   late Animation<double> _fadeInAnimation;
   late Animation<Offset> _slideAnimation;
 
-  List<Terreno> _terrenos = [];
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-    _apiService = ApiService();
 
     _animationController = AnimationController(
       duration: const Duration(seconds: 1),
@@ -47,45 +55,26 @@ class _TerrenoScreenState extends State<TerrenoScreen>
     );
 
     _animationController.forward();
-    _fetchTerrenos();
   }
 
- Future<void> _fetchTerrenos() async {
-  try {
-    final terrenos = await _apiService.Agricultor_getTerrenos(widget.agricultorId);
-    if (!mounted) return;
-    setState(() {
-      _terrenos = terrenos;
-      _isLoading = false;
-    });
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error al obtener terrenos: $e')),
-    );
-    setState(() {
-      _isLoading = false;
-    });
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
-}
 
-
-  void _showAddTerrenoDialog({Terreno? terrenoToEdit}) {
-    final TextEditingController descripcionController = TextEditingController();
-    final TextEditingController areaController = TextEditingController();
+  void _showAddTerrenoDialog(BuildContext context, TerrenoViewModel viewModel,
+      {Terreno? terrenoToEdit}) {
+    final TextEditingController descripcionController =
+        TextEditingController(text: terrenoToEdit?.descripcion);
+    final TextEditingController areaController =
+        TextEditingController(text: terrenoToEdit?.area.toString());
     final TextEditingController superficieTotalController =
-        TextEditingController();
-    latlng.LatLng? location;
-
-    if (terrenoToEdit != null) {
-      descripcionController.text = terrenoToEdit.descripcion;
-      areaController.text = terrenoToEdit.area.toString();
-      superficieTotalController.text = terrenoToEdit.superficieTotal.toString();
-      location = latlng.LatLng(
-        terrenoToEdit.ubicacionLatitud,
-        terrenoToEdit.ubicacionLongitud,
-      );
-    }
+        TextEditingController(text: terrenoToEdit?.superficieTotal.toString());
+    latlng.LatLng? location = terrenoToEdit != null
+        ? latlng.LatLng(
+            terrenoToEdit.ubicacionLatitud, terrenoToEdit.ubicacionLongitud)
+        : null;
 
     showDialog(
       context: context,
@@ -99,7 +88,9 @@ class _TerrenoScreenState extends State<TerrenoScreen>
             backgroundColor: AppThemes.surfaceColor,
             title: Text(
               terrenoToEdit == null ? "Agregar Terreno" : "Editar Terreno",
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: AppThemes.accentColor,
+                  ),
             ),
             content: SingleChildScrollView(
               child: Form(
@@ -109,6 +100,7 @@ class _TerrenoScreenState extends State<TerrenoScreen>
                       controller: descripcionController,
                       decoration:
                           const InputDecoration(labelText: "Descripción"),
+                      style: TextStyle(color: AppThemes.textColor),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Ingrese una descripción válida.';
@@ -121,6 +113,7 @@ class _TerrenoScreenState extends State<TerrenoScreen>
                       controller: areaController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(labelText: "Área (m²)"),
+                      style: TextStyle(color: AppThemes.textColor),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Ingrese el área.';
@@ -134,6 +127,7 @@ class _TerrenoScreenState extends State<TerrenoScreen>
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                           labelText: "Superficie Total (m²)"),
+                      style: TextStyle(color: AppThemes.textColor),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Ingrese la superficie total.';
@@ -151,21 +145,22 @@ class _TerrenoScreenState extends State<TerrenoScreen>
                             location == null
                                 ? 'Latitud: ---'
                                 : 'Latitud: ${location?.latitude.toStringAsFixed(6)}',
+                            style: TextStyle(color: AppThemes.textColor),
                           ),
                           Text(
                             location == null
                                 ? 'Longitud: ---'
                                 : 'Longitud: ${location?.longitude.toStringAsFixed(6)}',
+                            style: TextStyle(color: AppThemes.textColor),
                           ),
                         ],
                       ),
-                      trailing: const Icon(Icons.map),
+                      trailing: const Icon(Icons.map, color: AppThemes.accentColor),
                       onTap: () async {
                         final selectedLocation = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => MapLocationPicker(
-                              
                               onLocationSelected: (latlng.LatLng loc) {
                                 Navigator.pop(context, loc);
                               },
@@ -187,13 +182,16 @@ class _TerrenoScreenState extends State<TerrenoScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text("Cancelar"),
+                child: const Text(
+                  "Cancelar",
+                  style: TextStyle(color: AppThemes.accentColor),
+                ),
               ),
               ElevatedButton(
                 onPressed: () async {
                   if (location != null) {
                     final terrenoData = {
-                      'id_agricultor': widget.agricultorId,
+                      'id_agricultor': viewModel.agricultorId,
                       'descripcion': descripcionController.text,
                       'area': double.tryParse(areaController.text) ?? 0.0,
                       'superficie_total':
@@ -204,28 +202,16 @@ class _TerrenoScreenState extends State<TerrenoScreen>
                     };
                     try {
                       if (terrenoToEdit == null) {
-                        // Create new terreno
-                        final terreno = await _apiService
-                            .Terreno_createTerreno(terrenoData);
-                        setState(() {
-                          _terrenos.add(terreno);
-                        });
+                        // Crear nuevo terreno
+                        await viewModel.addTerreno(terrenoData);
                       } else {
-                        // Update existing terreno
-                        final terreno = await _apiService.Terreno_updateTerreno(
+                        // Actualizar terreno existente
+                        await viewModel.updateTerreno(
                             terrenoToEdit.id, terrenoData);
-                        setState(() {
-                          int index = _terrenos
-                              .indexWhere((t) => t.id == terrenoToEdit.id);
-                          if (index != -1) {
-                            _terrenos[index] = terreno;
-                          }
-                        });
                       }
                       if (!mounted) return;
                       Navigator.pop(context);
                     } catch (e) {
-                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Error: $e')),
                       );
@@ -247,156 +233,111 @@ class _TerrenoScreenState extends State<TerrenoScreen>
     );
   }
 
-  Future<void> _deleteTerreno(Terreno terreno) async {
+  void _deleteTerrenoDialog(
+      BuildContext context, TerrenoViewModel viewModel, Terreno terreno) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Terreno'),
-        content: const Text('¿Está seguro de que desea eliminar este terreno?'),
+        content:
+            const Text('¿Está seguro de que desea eliminar este terreno?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppThemes.accentColor),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Eliminar'),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: AppThemes.errorColor),
+            ),
           ),
         ],
       ),
     );
 
     if (confirm == true) {
-      try {
-        await _apiService.Terreno_deleteTerreno(terreno.id);
-        setState(() {
-          _terrenos.remove(terreno);
-        });
-        if (!mounted) return;
+      await viewModel.deleteTerreno(terreno.id);
+      if (viewModel.errorMessage.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(viewModel.errorMessage)),
+        );
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Terreno eliminado exitosamente')),
-        );
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al eliminar terreno: $e')),
         );
       }
     }
   }
 
-  Widget _buildTerrenoCard(Terreno terreno) {
+  Widget _buildTerrenoCard(Terreno terreno, BuildContext context) {
     return FadeTransition(
       opacity: _fadeInAnimation,
       child: SlideTransition(
         position: _slideAnimation,
         child: GestureDetector(
           onTap: () {
-            _showAddTerrenoDialog(terrenoToEdit: terreno);
+            final viewModel =
+                Provider.of<TerrenoViewModel>(context, listen: false);
+            _showAddTerrenoDialog(context, viewModel, terrenoToEdit: terreno);
           },
           onLongPress: () {
-            _deleteTerreno(terreno);
+            final viewModel =
+                Provider.of<TerrenoViewModel>(context, listen: false);
+            _deleteTerrenoDialog(context, viewModel, terreno);
           },
-          child: Container(
-            margin: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: AppThemes.surfaceColor,
-              borderRadius: BorderRadius.circular(18.0),
-              border: Border.all(color: AppThemes.borderColor, width: 2.0), // Fixed line
-              boxShadow: [
-                BoxShadow(
-                  color: AppThemes.borderColor.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  terreno.descripcion,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: AppThemes.textColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  'Área: ${terreno.area.toStringAsFixed(2)} m²',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppThemes.hintColor,
-                      ),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  'Superficie Total: ${terreno.superficieTotal.toStringAsFixed(2)} m²',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppThemes.hintColor,
-                      ),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  'Ubicación:',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppThemes.hintColor,
-                      ),
-                ),
-                Text(
-                  'Latitud: ${terreno.ubicacionLatitud.toStringAsFixed(6)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppThemes.textColor,
-                      ),
-                ),
-                Text(
-                  'Longitud: ${terreno.ubicacionLongitud.toStringAsFixed(6)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppThemes.textColor,
-                      ),
-                ),
-              ],
-            ),
+          child: CustomCard(
+            title: terreno.descripcion,
+            subtitle:
+                'Área: ${terreno.area.toStringAsFixed(2)} m²\n'
+                'Superficie Total: ${terreno.superficieTotal.toStringAsFixed(2)} m²\n'
+                'Ubicación:\nLatitud: ${terreno.ubicacionLatitud.toStringAsFixed(6)}\n'
+                'Longitud: ${terreno.ubicacionLongitud.toStringAsFixed(6)}',
+            icon: Icons.terrain_outlined, // Ícono representativo
+            // No se pasan status y statusColor ya que no son necesarios aquí
           ),
         ),
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
+  Widget _buildTerrenosList(TerrenoViewModel viewModel) {
+    if (viewModel.terrenos.isEmpty) {
+      return Center(
+        child: Text(
+          'No hay terrenos disponibles.',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: AppThemes.outsideTextColor,
+              ),
+        ),
+      );
+    }
 
-  Widget _buildLoadingIndicator() {
-    return Center(
-      child: CircularProgressIndicator(
-        color: AppThemes.primaryColor,
-      ),
-    );
-  }
-
-  Widget _buildTerrenosList() {
     return ListView.builder(
       padding: EdgeInsets.symmetric(vertical: 16.h),
-      itemCount: _terrenos.length,
+      itemCount: viewModel.terrenos.length,
       itemBuilder: (context, index) {
-        return _buildTerrenoCard(_terrenos[index]);
+        return _buildTerrenoCard(viewModel.terrenos[index], context);
       },
     );
   }
 
-  Widget _buildFloatingActionButton() {
+  Widget _buildFloatingActionButton(TerrenoViewModel viewModel) {
     return FloatingActionButton(
       backgroundColor: AppThemes.primaryColor,
       child: const Icon(Icons.add, color: AppThemes.secondaryColor),
-      onPressed: () => _showAddTerrenoDialog(),
+      onPressed: () => _showAddTerrenoDialog(context, viewModel),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = Provider.of<TerrenoViewModel>(context);
+
     return Scaffold(
       backgroundColor: AppThemes.backgroundColor,
       appBar: AppBar(
@@ -414,9 +355,15 @@ class _TerrenoScreenState extends State<TerrenoScreen>
         ),
       ),
       body: SafeArea(
-        child: _isLoading ? _buildLoadingIndicator() : _buildTerrenosList(),
+        child: viewModel.isLoading
+            ? Center(
+                child: CircularProgressIndicator(
+                  color: AppThemes.primaryColor,
+                ),
+              )
+            : _buildTerrenosList(viewModel),
       ),
-      floatingActionButton: _buildFloatingActionButton(),
+      floatingActionButton: _buildFloatingActionButton(viewModel),
     );
   }
 }

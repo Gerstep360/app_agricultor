@@ -1,3 +1,5 @@
+// lib/ui/screens/productor/produccion/produccion_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:agromarket_app/models/Agricultor/produccion.dart';
@@ -5,9 +7,10 @@ import 'package:agromarket_app/models/Agricultor/terreno.dart';
 import 'package:agromarket_app/models/Agricultor/unidad_medida.dart';
 import 'package:agromarket_app/models/Agricultor/producto.dart';
 import 'package:agromarket_app/models/Agricultor/temporada.dart';
-import 'package:agromarket_app/services/api_service.dart';
 import 'package:agromarket_app/ui/Themes/theme.dart';
-import 'package:agromarket_app/ui/screens/productor/produccion/agregar_produccion.dart';
+import 'package:agromarket_app/ui/screens/productor/produccion/add_produccion_form.dart';
+import 'package:agromarket_app/ui/screens/productor/produccion/view_models/produccion_service.dart';
+import 'package:intl/intl.dart';
 
 class ProduccionScreen extends StatefulWidget {
   final int agricultorId;
@@ -15,27 +18,17 @@ class ProduccionScreen extends StatefulWidget {
   const ProduccionScreen({Key? key, required this.agricultorId}) : super(key: key);
 
   @override
-  State<ProduccionScreen> createState() => _ProduccionScreenState();
+  _ProduccionScreenState createState() => _ProduccionScreenState();
 }
 
-class _ProduccionScreenState extends State<ProduccionScreen>
-    with SingleTickerProviderStateMixin {
-  late ApiService _apiService;
+class _ProduccionScreenState extends State<ProduccionScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeInAnimation;
-
-  List<Produccion> _producciones = [];
-  List<Terreno> _terrenos = [];
-  List<UnidadMedida> _unidadesMedida = [];
-  List<Producto> _productos = [];
-  List<Temporada> _temporadas = [];
-  bool _isLoading = true;
+  late ProduccionService produccionService;
 
   @override
   void initState() {
     super.initState();
-    _apiService = ApiService();
-    _fetchAllData();
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
@@ -48,214 +41,190 @@ class _ProduccionScreenState extends State<ProduccionScreen>
     );
 
     _animationController.forward();
+
+    produccionService = ProduccionService(agricultorId: widget.agricultorId);
+    produccionService.fetchAllData();
+
+    produccionService.addListener(() {
+      setState(() {});
+    });
   }
 
-  Future<void> _fetchAllData() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final data = await Future.wait([
-        _apiService.Unidad_medida_getUnidadMedidas(),
-        _apiService.Agricultor_getProducciones(widget.agricultorId),
-        _apiService.Producto_Producto_getProductos(),
-        _apiService.Temporada_getTemporadas(),
-        _apiService.getTerrenosByAgricultor(widget.agricultorId),
-      ]);
-
-      setState(() {
-        _unidadesMedida = data[0] as List<UnidadMedida>;
-        _producciones = data[1] as List<Produccion>;
-        _productos = data[2] as List<Producto>;
-        _temporadas = data[3] as List<Temporada>;
-        _terrenos = data[4] as List<Terreno>;
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint('Error al obtener datos: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al obtener datos: $e')),
-      );
-    }
-  }
-
+  /// Muestra el diálogo para agregar una nueva producción
   void _showAddProduccionDialog({Produccion? produccionToEdit}) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (BuildContext dialogContext) => Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20.0),
-          side: const BorderSide(color: AppThemes.borderColor, width: 2.0),
+          side: BorderSide(color: AppThemes.borderColor, width: 2.0),
         ),
         backgroundColor: AppThemes.surfaceColor,
         child: AddProduccionForm(
-          unidadesMedida: _unidadesMedida,
-          terrenos: _terrenos,
-          productos: _productos,
-          temporadas: _temporadas,
+          produccionService: produccionService,
           produccionToEdit: produccionToEdit,
-          onProduccionCreated: (produccion) {
-            setState(() {
-              _producciones.add(produccion);
-            });
-            Navigator.pop(context);
-          },
-          onProduccionUpdated: (updatedProduccion) {
-            setState(() {
-              int index = _producciones.indexWhere((p) => p.id == updatedProduccion.id);
-              if (index != -1) {
-                _producciones[index] = updatedProduccion;
-              }
-            });
-            Navigator.pop(context);
+          onSuccess: (produccion) {
+            // La lista se actualiza automáticamente a través del listener del servicio
+            if (produccionToEdit == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Producción creada exitosamente.'),
+                  backgroundColor: AppThemes.primaryColor,
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Producción actualizada exitosamente.'),
+                  backgroundColor: AppThemes.primaryColor,
+                ),
+              );
+            }
           },
         ),
       ),
     );
   }
 
-Future<void> _deleteProduccion(Produccion produccion) async {
-  debugPrint('Entrando al método _deleteProduccion');
-
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) {
-      debugPrint('Mostrando el diálogo de confirmación');
-      return AlertDialog(
+  /// Elimina una producción después de confirmación
+  void _deleteProduccion(Produccion produccion) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppThemes.surfaceColor,
         title: const Text('Eliminar Producción'),
-        content: const Text(
-            '¿Está seguro de que desea eliminar esta producción?'),
+        content: const Text('¿Está seguro de que desea eliminar esta producción?'),
         actions: [
           TextButton(
-            onPressed: () {
-              debugPrint('Cancelar presionado');
-              Navigator.of(context).pop(false); // Devuelve false
-            },
-            child: const Text('Cancelar'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar', style: TextStyle(color: AppThemes.accentColor)),
           ),
           TextButton(
-            onPressed: () {
-              debugPrint('Eliminar presionado');
-              Navigator.of(context).pop(true); // Devuelve true
-            },
-            child: const Text('Eliminar'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar', style: TextStyle(color: AppThemes.errorColor)),
           ),
         ],
-      );
-    },
-  );
+      ),
+    );
 
-  debugPrint('Resultado del diálogo: $confirm');
-
-  if (confirm == true) {
-    try {
-      debugPrint('Eliminando producción con ID: ${produccion.id}');
-      await _apiService.Produccion_deleteProduccion(produccion.id);
-      setState(() {
-        _producciones.remove(produccion); // Eliminar localmente
-      });
-      debugPrint('Producción eliminada exitosamente');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Producción eliminada exitosamente')),
-      );
-    } catch (e) {
-      debugPrint('Error al eliminar producción: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar producción: $e')),
-      );
+    if (confirm == true) {
+      await produccionService.deleteProduccion(produccion.id);
+      if (produccionService.errorMessage.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(produccionService.errorMessage),
+            backgroundColor: AppThemes.errorColor,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Producción eliminada exitosamente.'),
+            backgroundColor: AppThemes.primaryColor,
+          ),
+        );
+      }
     }
-  } else {
-    debugPrint('Eliminación cancelada');
   }
-}
 
+  /// Construye la tarjeta para cada producción
+  Widget _buildProduccionCard(Produccion produccion, Animation<double> animation) {
+    final unidadMedida = produccionService.unidadesMedida.firstWhere(
+      (unidad) => unidad.id == produccion.idUnidadMedida,
+      orElse: () => UnidadMedida(id: 0, nombre: 'Desconocido'),
+    );
 
+    final producto = produccionService.productos.firstWhere(
+      (p) => p.id == produccion.id_producto,
+      orElse: () => Producto(id: 0, idCategoria: 0, nombre: 'Desconocido'),
+    );
 
-  Widget _buildProduccionCard(Produccion produccion) {
-  final unidadMedida = _unidadesMedida.firstWhere(
-    (unidad) => unidad.id == produccion.idUnidadMedida,
-    orElse: () => UnidadMedida(id: 0, nombre: 'Desconocido'),
-  );
+    final terreno = produccionService.terrenos.firstWhere(
+      (t) => t.id == produccion.id_terreno,
+      orElse: () => Terreno(
+        id: 0,
+        idAgricultor: 0,
+        descripcion: 'Desconocido',
+        area: 0.0,
+        superficieTotal: 0.0,
+        ubicacionLatitud: 0.0,
+        ubicacionLongitud: 0.0,
+      ),
+    );
 
-  final producto = _productos.firstWhere(
-    (p) => p.id == produccion.id_producto,
-    orElse: () => Producto(id: 0, idCategoria: 0, nombre: 'Desconocido'),
-  );
+    final temporada = produccionService.temporadas.firstWhere(
+      (t) => t.id == produccion.id_temporada,
+      orElse: () => Temporada(
+        id: 0,
+        nombre: 'Desconocida',
+        fechaInicio: DateTime(2000),
+        fechaFin: DateTime(2100),
+      ),
+    );
 
-  final terreno = _terrenos.firstWhere(
-    (t) => t.id == produccion.id_terreno,
-    orElse: () => Terreno(
-      id: 0,
-      idAgricultor: 0,
-      descripcion: 'Desconocido',
-      area: 0.0,
-      superficieTotal: 0.0,
-      ubicacionLatitud: 0.0,
-      ubicacionLongitud: 0.0,
-    ),
-  );
+    // Determinar el color del estado
+    Color statusColor = produccion.estado.toLowerCase() == 'activo'
+        ? AppThemes.accentColor
+        : AppThemes.errorColor;
 
-  final temporada = _temporadas.firstWhere(
-    (t) => t.id == produccion.id_temporada,
-    orElse: () => Temporada(
-      id: 0,
-      nombre: 'Desconocida',
-      fechaInicio: DateTime(2000),
-      fechaFin: DateTime(2100),
-    ),
-  );
-
-  // Determinar el color del estado
-  Color statusColor = produccion.estado.toLowerCase() == 'activo'
-      ? AppThemes.primaryColor
-      : AppThemes.errorColor;
-
-  return FadeTransition(
-    opacity: _fadeInAnimation,
+    return FadeTransition(
+      opacity: animation,
       child: GestureDetector(
-    onTap: () {
-      _showAddProduccionDialog(produccionToEdit: produccion);
-    },
-    onLongPress: () {
-      // Aquí se llama a _deleteProduccion
-      _deleteProduccion(produccion);
-    },
-    child: CustomCard(
-      title: producto.nombre, // Nombre del producto como título
-      subtitle: 'Descripción: ${produccion.descripcion}\n'
-          'Terreno: ${terreno.descripcion}\n'
-          'Temporada: ${temporada.nombre}\n'
-          'Cantidad: ${produccion.cantidad} ${unidadMedida.nombre}\n'
-          'Fecha de Cosecha: ${produccion.fechaCosecha.toLocal().toIso8601String().split("T")[0]}\n'
-          'Fecha de Expiración: ${produccion.fechaExpiracion.toLocal().toIso8601String().split("T")[0]}\n'
-          'Estado: ${produccion.estado}', // Información detallada
-      icon: Icons.grass, // Ícono representativo
-      status: produccion.estado,
-      statusColor: statusColor,    
-    ),
-    ),
-  );
-}
+        onTap: () {
+          _showAddProduccionDialog(produccionToEdit: produccion);
+        },
+        onLongPress: () {
+          _deleteProduccion(produccion);
+        },
+        child: CustomCard(
+          title: producto.nombre, // Nombre del producto como título
+          subtitle: 'Descripción: ${produccion.descripcion}\n'
+              'Terreno: ${terreno.descripcion}\n'
+              'Temporada: ${temporada.nombre}\n'
+              'Cantidad: ${produccion.cantidad} ${unidadMedida.nombre}\n'
+              'Fecha de Cosecha: ${DateFormat('dd MMM yyyy').format(produccion.fechaCosecha)}\n'
+              'Fecha de Expiración: ${DateFormat('dd MMM yyyy').format(produccion.fechaExpiracion)}\n'
+              'Estado: ${produccion.estado}', // Información detallada
+          icon: Icons.grass, // Ícono representativo
+          status: produccion.estado,
+          statusColor: statusColor,
+        ),
+      ),
+    );
+  }
 
-
+  /// Construye la lista de producciones
   Widget _buildProduccionesList() {
-    if (_producciones.isEmpty) {
+    if (produccionService.isLoading) {
+      return Center(child: CircularProgressIndicator(color: AppThemes.primaryColor));
+    }
+
+    if (produccionService.producciones.isEmpty) {
       return Center(
         child: Text(
           'No hay producciones disponibles.',
-          style: Theme.of(context).textTheme.headlineSmall,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: AppThemes.primaryColor,
+              ),
         ),
       );
     }
 
     return ListView.builder(
       padding: EdgeInsets.symmetric(vertical: 16.h),
-      itemCount: _producciones.length,
+      itemCount: produccionService.producciones.length,
       itemBuilder: (context, index) {
-        return _buildProduccionCard(_producciones[index]);
+        final produccion = produccionService.producciones[index];
+        final animation = CurvedAnimation(
+          parent: _animationController,
+          curve: Curves.easeInOut,
+        );
+        return _buildProduccionCard(produccion, animation);
       },
     );
   }
 
+  /// Construye el botón flotante para agregar una nueva producción
   Widget _buildFloatingActionButton() {
     return FloatingActionButton(
       backgroundColor: AppThemes.primaryColor,
@@ -267,24 +236,44 @@ Future<void> _deleteProduccion(Produccion produccion) async {
   @override
   void dispose() {
     _animationController.dispose();
+    produccionService.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    ScreenUtil.init(context);
-
     return Scaffold(
       backgroundColor: AppThemes.backgroundColor,
       appBar: AppBar(
         title: const Text("Producciones"),
         centerTitle: true,
         backgroundColor: AppThemes.primaryColor,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: AppThemes.secondaryColor),
+            onPressed: () async {
+              await produccionService.fetchAllData();
+              if (produccionService.errorMessage.isNotEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(produccionService.errorMessage),
+                    backgroundColor: AppThemes.errorColor,
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Datos actualizados.'),
+                    backgroundColor: AppThemes.primaryColor,
+                  ),
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: SafeArea(
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator())
-            : _buildProduccionesList(),
+        child: _buildProduccionesList(),
       ),
       floatingActionButton: _buildFloatingActionButton(),
     );

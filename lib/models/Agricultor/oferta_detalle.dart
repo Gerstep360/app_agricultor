@@ -1,6 +1,8 @@
+// lib/models/Agricultor/oferta_detalle.dart
+
 class OfertaDetalle {
-  final int id;
-  final int idOferta;
+  final int? id;
+  final int? idOferta; // Hacer que sea opcional
   final int idUnidadMedida;
   final int idMoneda;
   final int idProduccion;
@@ -8,30 +10,30 @@ class OfertaDetalle {
   final double cantidadFisico;
   final double? cantidadComprometido;
   final double precio;
-  final double? precioUnitario; // Añadir este campo
+  final double? precioUnitario;
   final String estado;
 
   OfertaDetalle({
-    required this.id,
-    required this.idProduccion,
-    required this.idOferta,
+    this.id,
+    this.idOferta,
     required this.idUnidadMedida,
     required this.idMoneda,
+    required this.idProduccion,
     this.descripcion,
     required this.cantidadFisico,
     this.cantidadComprometido,
     required this.precio,
-    this.precioUnitario, // Añadir este campo al constructor
+    this.precioUnitario,
     required this.estado,
   });
 
   factory OfertaDetalle.fromJson(Map<String, dynamic> json) {
     return OfertaDetalle(
       id: json['id'],
-      idProduccion: json['id_produccion'],
       idOferta: json['id_oferta'],
       idUnidadMedida: json['id_unidadmedida'],
       idMoneda: json['id_moneda'],
+      idProduccion: json['id_produccion'],
       descripcion: json['descripcion'],
       cantidadFisico: double.tryParse(json['cantidad_fisico'].toString()) ?? 0.0,
       cantidadComprometido: json['cantidad_comprometido'] != null
@@ -40,23 +42,47 @@ class OfertaDetalle {
       precio: double.tryParse(json['precio'].toString()) ?? 0.0,
       precioUnitario: json['preciounitario'] != null
           ? double.tryParse(json['preciounitario'].toString())
-          : null, // Convertir el campo del JSON
+          : null,
       estado: json['estado'],
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id_produccion': idProduccion,
+    final Map<String, dynamic> data = {
       'id_oferta': idOferta,
+      'id_produccion': idProduccion,
       'id_unidadmedida': idUnidadMedida,
       'id_moneda': idMoneda,
       'descripcion': descripcion ?? '',
       'cantidad_fisico': cantidadFisico,
-      'cantidad_comprometido': cantidadComprometido ?? 0, // Valor predeterminado
       'precio': precio,
-      'preciounitario': precio / cantidadFisico, // Cálculo del precio unitario
       'estado': estado,
     };
+    if (cantidadComprometido != null) {
+      data['cantidad_comprometido'] = cantidadComprometido;
+    }
+    if (precioUnitario != null) {
+      data['preciounitario'] = precioUnitario;
+    }
+    if (id != null) {
+      data['id'] = id;
+    }
+    return data;
+  }
+
+  OfertaDetalle copyWith({int? idOferta}) {
+    return OfertaDetalle(
+      id: this.id,
+      idOferta: idOferta ?? this.idOferta,
+      idUnidadMedida: this.idUnidadMedida,
+      idMoneda: this.idMoneda,
+      idProduccion: this.idProduccion,
+      descripcion: this.descripcion,
+      cantidadFisico: this.cantidadFisico,
+      cantidadComprometido: this.cantidadComprometido,
+      precio: this.precio,
+      precioUnitario: this.precioUnitario,
+      estado: this.estado,
+    );
   }
 }

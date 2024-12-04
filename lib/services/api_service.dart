@@ -30,6 +30,7 @@ class ApiService {
         throw FormatException('La respuesta no está en formato JSON');
       }
     } else {
+      print('Error en GET $endpoint: ${response.statusCode} - ${response.body}');
       throw Exception('Error en la solicitud GET: ${response.statusCode}');
     }
   }
@@ -40,7 +41,7 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
     );
-    return _processResponse(response);
+    return _processResponse(response, endpoint);
   }
 
   Future<dynamic> put(String endpoint, dynamic data) async {
@@ -49,20 +50,26 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
     );
-    return _processResponse(response);
+    return _processResponse(response, endpoint);
   }
 
   Future<dynamic> delete(String endpoint) async {
     final response = await http.delete(Uri.parse('$baseUrl$endpoint'));
-    return _processResponse(response);
+    return _processResponse(response, endpoint);
   }
 
-  dynamic _processResponse(http.Response response) {
-    final jsonData = jsonDecode(response.body);
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return jsonData;
-    } else {
-      throw Exception(jsonData['message'] ?? 'Error en la solicitud');
+  dynamic _processResponse(http.Response response, String endpoint) {
+    try {
+      final jsonData = jsonDecode(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonData;
+      } else {
+        print('Error en $endpoint: ${response.statusCode} - ${response.body}');
+        throw Exception(jsonData['message'] ?? 'Error en la solicitud');
+      }
+    } catch (e) {
+      print('Error al procesar la respuesta de $endpoint: ${response.body}');
+      throw FormatException('La respuesta no está en formato JSON');
     }
   }
 
@@ -323,10 +330,10 @@ Future<void> Produccion_deleteProduccion(int id) async {
 
   // Crear un nuevo detalle de oferta
   Future<OfertaDetalle> Ofertas_detalle_createOfertaDetalle(
-      Map<String, dynamic> detalleData) async {
-    final data = await post('/oferta_detalles', detalleData);
-    return OfertaDetalle.fromJson(data);
-  }
+    Map<String, dynamic> detalleData) async {
+  final data = await post('/oferta_detalles', detalleData);
+  return OfertaDetalle.fromJson(data);
+}
 
   // Mostrar detalles de un detalle de oferta específica
   Future<OfertaDetalle> Ofertas_detalle_getOfertaDetalle(int id) async {

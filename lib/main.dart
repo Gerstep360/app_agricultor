@@ -8,6 +8,7 @@ import 'package:agromarket_app/services/Agricultor/notificaciones.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:agromarket_app/ui/rutas.dart'; // Asegúrate de tener este archivo de rutas
 import 'package:agromarket_app/ui/navegador.dart'; // Importa el AppNavegador
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();

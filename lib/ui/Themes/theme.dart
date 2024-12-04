@@ -5,15 +5,19 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppThemes {
   // Colores principales y secundarios
-  static const Color primaryColor = Color(0xFF00A86B); // Verde esmeralda
-  static const Color accentColor = Color(0xFFFFD700); // Dorado para acentos
-  static const Color secondaryColor = Color(0xFFFFFFFF); // Blanco para textos y elementos destacados
-  static const Color backgroundColor = Color(0xFFE0F7FA); // Azul claro como fondo general
-  static const Color surfaceColor = Color(0xFFFFFFFF); // Superficie blanca para tarjetas y contenedores
-  static const Color textColor = Color(0xFF000000); // Texto principal, negro
+  static const Color primaryColor = Color(0xFF77910A); // Verde oscuro para botones y textos principales
+  static const Color accentColor = Color(0xFFF6D2C6); // Rosa claro para acentos y textos dentro de botones
+  static const Color secondaryColor = Color(0xFFFFFFFF); // Blanco para elementos destacados
+  static const Color backgroundColor = Color(0xFFF6D2C6); // Rosa claro como fondo general
+  static const Color surfaceColor = Color(0xFF77910A); // Verde oscuro para tarjetas y contenedores
+  static const Color textColor = Color(0xFFF6D2C6); // Texto dentro de widgets, rosa claro
+  static const Color outsideTextColor = Color(0xFF77910A); // Texto fuera de widgets, verde oscuro
   static const Color hintColor = Color(0xFF616161); // Texto de ayuda, gris oscuro
-  static const Color borderColor = Color(0xFF000000); // Bordes negros para definición
+  static const Color borderColor = Color(0xFF77910A); // Bordes verde oscuro para definición
   static const Color errorColor = Color(0xFFD32F2F); // Rojo para errores
+  static const Color successColor = Color(0xFF28A745); // Verde para mensajes de éxito
+  static const Color warningColor = Color(0xFFFFC107); // Ámbar para advertencias
+
   // Tema de la aplicación
   static final ThemeData appTheme = ThemeData(
     brightness: Brightness.light,
@@ -23,9 +27,12 @@ class AppThemes {
       secondary: accentColor,
       background: backgroundColor,
       surface: surfaceColor,
-      onPrimary: secondaryColor,
-      onSecondary: textColor,
+      onPrimary: accentColor, // Texto dentro de botones
+      onSecondary: primaryColor, // Texto fuera de botones
       error: errorColor,
+      onError: secondaryColor,
+      onBackground: outsideTextColor,
+      onSurface: primaryColor,
     ),
     scaffoldBackgroundColor: backgroundColor,
     cardColor: surfaceColor,
@@ -69,15 +76,15 @@ class AppThemes {
   static const AppBarTheme _appBarTheme = AppBarTheme(
     backgroundColor: primaryColor,
     elevation: 0,
-    iconTheme: IconThemeData(color: secondaryColor),
-    titleTextStyle: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold, color: secondaryColor),
+    iconTheme: IconThemeData(color: accentColor),
+    titleTextStyle: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold, color: accentColor),
   );
 
   // Estilo de ElevatedButton
   static final ElevatedButtonThemeData _elevatedButtonTheme = ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      backgroundColor: accentColor,
-      foregroundColor: textColor,
+      backgroundColor: primaryColor, // Botones verdes
+      foregroundColor: accentColor, // Texto dentro de botones
       elevation: 4.0,
       shadowColor: borderColor,
       shape: RoundedRectangleBorder(
@@ -92,7 +99,7 @@ class AppThemes {
   // Estilo de TextButton
   static final TextButtonThemeData _textButtonTheme = TextButtonThemeData(
     style: TextButton.styleFrom(
-      foregroundColor: primaryColor,
+      foregroundColor: primaryColor, // Texto fuera de botones
       textStyle: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
     ),
   );
@@ -100,7 +107,7 @@ class AppThemes {
   // Estilo de OutlinedButton
   static final OutlinedButtonThemeData _outlinedButtonTheme = OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
-      foregroundColor: primaryColor,
+      foregroundColor: primaryColor, // Texto fuera de botones
       side: BorderSide(color: borderColor, width: 2.0),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.0),
@@ -141,26 +148,26 @@ class AppThemes {
 
   // Estilo de Iconos
   static const IconThemeData _iconThemeData = IconThemeData(
-    color: primaryColor,
+    color: accentColor, // Iconos en rosa claro
     size: 28.0,
   );
 
   // Estilo de BottomNavigationBar
   static final BottomNavigationBarThemeData _bottomNavTheme = BottomNavigationBarThemeData(
     backgroundColor: surfaceColor,
-    selectedItemColor: primaryColor,
+    selectedItemColor: accentColor,
     unselectedItemColor: hintColor,
-    selectedIconTheme: IconThemeData(size: 30.0),
-    unselectedIconTheme: IconThemeData(size: 28.0),
+    selectedIconTheme: IconThemeData(size: 30.0, color: accentColor),
+    unselectedIconTheme: IconThemeData(size: 28.0, color: hintColor),
     showUnselectedLabels: true,
     type: BottomNavigationBarType.fixed,
   );
 
   // Estilo de SnackBar
   static final SnackBarThemeData _snackBarTheme = SnackBarThemeData(
-    backgroundColor: accentColor,
-    contentTextStyle: TextStyle(color: textColor, fontSize: 14.0),
-    actionTextColor: primaryColor,
+    backgroundColor: primaryColor,
+    contentTextStyle: TextStyle(color: accentColor, fontSize: 14.0),
+    actionTextColor: accentColor,
     behavior: SnackBarBehavior.floating,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.all(Radius.circular(12.0)),
@@ -175,18 +182,18 @@ class AppThemes {
       borderRadius: BorderRadius.all(Radius.circular(12.0)),
       side: BorderSide(color: borderColor, width: 2.0),
     ),
-    titleTextStyle: TextStyle(color: textColor, fontSize: 20.0, fontWeight: FontWeight.bold),
-    contentTextStyle: TextStyle(color: textColor, fontSize: 16.0),
+    titleTextStyle: TextStyle(color: accentColor, fontSize: 20.0, fontWeight: FontWeight.bold),
+    contentTextStyle: TextStyle(color: accentColor, fontSize: 16.0),
   );
 
   // Estilo de Tooltip
   static final TooltipThemeData _tooltipTheme = TooltipThemeData(
     decoration: BoxDecoration(
-      color: accentColor,
+      color: primaryColor,
       borderRadius: BorderRadius.all(Radius.circular(8.0)),
       border: Border.all(color: borderColor, width: 2.0),
     ),
-    textStyle: TextStyle(color: textColor, fontSize: 12.0),
+    textStyle: TextStyle(color: accentColor, fontSize: 12.0),
     padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
     waitDuration: Duration(milliseconds: 500),
     showDuration: Duration(seconds: 2),
@@ -204,7 +211,7 @@ class AppThemes {
       }
       return Colors.transparent;
     }),
-    checkColor: MaterialStateProperty.all<Color>(secondaryColor),
+    checkColor: MaterialStateProperty.all<Color>(accentColor),
     overlayColor: MaterialStateProperty.all<Color>(primaryColor.withOpacity(0.1)),
   );
 
@@ -250,7 +257,7 @@ class AppThemes {
 
   // Estilo de TabBar
   static final TabBarTheme _tabBarTheme = TabBarTheme(
-    labelColor: primaryColor,
+    labelColor: accentColor,
     unselectedLabelColor: hintColor,
     labelStyle: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
     unselectedLabelStyle: TextStyle(fontSize: 14.0, fontWeight: FontWeight.normal),
@@ -268,12 +275,13 @@ class AppThemes {
     space: 1.0,
   );
 }
+
 class CustomCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
-  final String status;
-  final Color statusColor; // Añadido este parámetro
+  final String? status; // Nullable
+  final Color? statusColor; // Nullable
   final VoidCallback? onTap;
 
   const CustomCard({
@@ -281,8 +289,8 @@ class CustomCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
-    required this.status,
-    required this.statusColor, // Añadido este parámetro
+    this.status, // Nullable
+    this.statusColor, // Nullable
     this.onTap,
   }) : super(key: key);
 
@@ -293,7 +301,7 @@ class CustomCard extends StatelessWidget {
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 8.h, horizontal: 16.w),
         decoration: BoxDecoration(
-          color: AppThemes.surfaceColor,
+          color: AppThemes.surfaceColor, // Fondo verde oscuro
           borderRadius: BorderRadius.circular(20.0),
           border: Border.all(
             color: AppThemes.borderColor,
@@ -316,7 +324,7 @@ class CustomCard extends StatelessWidget {
                 children: [
                   Icon(
                     icon,
-                    color: AppThemes.primaryColor.withOpacity(0.8),
+                    color: AppThemes.accentColor, // Icono en rosa claro
                     size: 40.sp,
                     shadows: [
                       Shadow(
@@ -330,7 +338,7 @@ class CustomCard extends StatelessWidget {
                     child: Text(
                       title,
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: AppThemes.primaryColor,
+                            color: AppThemes.textColor, // Texto en rosa claro
                             fontWeight: FontWeight.bold,
                             shadows: [
                               Shadow(
@@ -347,7 +355,7 @@ class CustomCard extends StatelessWidget {
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppThemes.textColor,
+                      color: AppThemes.textColor, // Texto en rosa claro
                       shadows: [
                         Shadow(
                           color: AppThemes.borderColor,
@@ -356,29 +364,31 @@ class CustomCard extends StatelessWidget {
                       ],
                     ),
               ),
-              SizedBox(height: 8.h),
-              Row(
-                children: [
-                  Icon(
-                    Icons.circle,
-                    color: statusColor, // Usar el color proporcionado
-                    size: 12.sp,
-                  ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'Estado: $status',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppThemes.textColor,
-                          shadows: [
-                            Shadow(
-                              color: AppThemes.borderColor,
-                              offset: Offset(1.0, 1.0),
-                            ),
-                          ],
-                        ),
-                  ),
-                ],
-              ),
+              if (status != null && statusColor != null) ...[
+                SizedBox(height: 8.h),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      color: statusColor, // Usar el color proporcionado
+                      size: 12.sp,
+                    ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Estado: $status',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppThemes.textColor, // Texto en rosa claro
+                            shadows: [
+                              Shadow(
+                                color: AppThemes.borderColor,
+                                offset: Offset(1.0, 1.0),
+                              ),
+                            ],
+                          ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

@@ -1,14 +1,14 @@
-import 'package:agromarket_app/models/Agricultor/produccion.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
 import 'package:agromarket_app/models/Agricultor/oferta.dart';
 import 'package:agromarket_app/models/Agricultor/oferta_detalle.dart';
-import 'package:agromarket_app/services/api_service.dart';
 import 'package:agromarket_app/ui/Themes/theme.dart';
-import 'package:agromarket_app/ui/screens/productor/oferta/add_oferta_form.dart';
+import 'package:agromarket_app/models/Agricultor/produccion.dart';
 import 'package:agromarket_app/models/Agricultor/unidad_medida.dart';
 import 'package:agromarket_app/models/Agricultor/moneda.dart';
+import 'package:agromarket_app/ui/screens/productor/oferta/add_oferta_form.dart';
+import 'package:agromarket_app/ui/screens/productor/oferta/view_models/oferta_service.dart';
+import 'package:intl/intl.dart';
 
 class OfertaScreen extends StatefulWidget {
   final int agricultorId;
@@ -16,86 +16,41 @@ class OfertaScreen extends StatefulWidget {
   const OfertaScreen({Key? key, required this.agricultorId}) : super(key: key);
 
   @override
-  State<OfertaScreen> createState() => _OfertaScreenState();
+  _OfertaScreenState createState() => _OfertaScreenState();
 }
 
-class _OfertaScreenState extends State<OfertaScreen>
-    with TickerProviderStateMixin {
-  late ApiService _apiService;
-  List<Oferta> _offers = [];
-  List<OfertaDetalle> _offerDetails = [];
-  bool _isLoading = true;
-  List<Produccion> _producciones = [];
-  List<UnidadMedida> _unidadesMedida = [];
-  List<Moneda> _monedas = [];
-
+class _OfertaScreenState extends State<OfertaScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late Animation<double> _fadeInAnimation;
-
-  final DateFormat _formatter = DateFormat('dd MMM yyyy');
+  late OfertaService ofertaService;
 
   @override
   void initState() {
     super.initState();
-    _apiService = ApiService();
-    _fetchData();
-
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
-    _fadeInAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
-
     _animationController.forward();
+
+    ofertaService = OfertaService(agricultorId: widget.agricultorId);
+    ofertaService.fetchAllData();
+
+    ofertaService.addListener(() {
+      setState(() {});
+    });
   }
 
-  /// Obtener ofertas y detalles del agricultor
-  Future<void> _fetchData() async {
-    try {
-      setState(() => _isLoading = true);
-
-      // Obtener datos necesarios
-      final produccionesFuture =
-          _apiService.Agricultor_getProducciones(widget.agricultorId);
-      final unidadesFuture = _apiService.Unidad_medida_getUnidadMedidas();
-      final monedasFuture = _apiService.Monedas_getMonedas();
-      final ofertasFuture =
-          _apiService.Agricultor_getOfertas(widget.agricultorId);
-      final detallesFuture =
-          _apiService.Agricultor_getOfertas_detalles(widget.agricultorId);
-
-      final results = await Future.wait([
-        produccionesFuture,
-        unidadesFuture,
-        monedasFuture,
-        ofertasFuture,
-        detallesFuture,
-      ]);
-
-      setState(() {
-        _producciones = results[0] as List<Produccion>;
-        _unidadesMedida = results[1] as List<UnidadMedida>;
-        _monedas = results[2] as List<Moneda>;
-        _offers = results[3] as List<Oferta>;
-        _offerDetails = results[4] as List<OfertaDetalle>;
-        _isLoading = false;
-      });
-
-      print(
-          'Datos cargados: ${_offers.length} ofertas, ${_offerDetails.length} detalles.');
-    } catch (e) {
-      debugPrint('Error al obtener datos: $e');
-      _showSnackBar('Error al obtener datos de ofertas.', AppThemes.errorColor);
-      setState(() => _isLoading = false);
-    }
+  @override
+  void dispose() {
+    _animationController.dispose();
+    ofertaService.dispose();
+    super.dispose();
   }
 
-  /// Mostrar mensaje al usuario
+  /// Mostrar SnackBar
   void _showSnackBar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -105,46 +60,40 @@ class _OfertaScreenState extends State<OfertaScreen>
   }
 
   /// Crear tarjeta para mostrar cada oferta
- Widget _buildCombinedOfferCard(Oferta offer) {
-  // Filtrar detalles asociados a esta oferta
-  final details = _offerDetails.where((d) => d.idOferta == offer.id).toList();
+  Widget _buildCombinedOfferCard(Oferta offer) {
+    // Filtrar detalles asociados a esta oferta
+    final details = ofertaService.detalles.where((d) => d.idOferta == offer.id).toList();
 
-  // Buscar la producción asociada
-  final produccion = _producciones.firstWhere(
-    (p) => p.id == offer.idProduccion,
-    orElse: () => Produccion(
-      id: 0,
-      id_terreno: 0,
-      id_temporada: 0,
-      id_producto: 0,
-      idUnidadMedida: 0,
-      descripcion: 'Producción desconocida',
-      cantidad: 0.0,
-      fechaCosecha: DateTime(2000),
-      fechaExpiracion: DateTime(2100),
-      estado: 'Desconocido',
-    ),
-  );
+    // Buscar la producción asociada
+    final produccion = ofertaService.getProduccionById(offer.idProduccion) ??
+        Produccion(
+          id: 0,
+          id_terreno: 0,
+          id_temporada: 0,
+          id_producto: 0,
+          idUnidadMedida: 0,
+          descripcion: 'Producción desconocida',
+          cantidad: 0.0,
+          fechaCosecha: DateTime(2000),
+          fechaExpiracion: DateTime(2100),
+          estado: 'Desconocido',
+        );
 
-  // Determinar color de estado
-  Color statusColor = offer.estado.toLowerCase() == 'activo'
-      ? AppThemes.primaryColor
-      : AppThemes.errorColor;
+    // Determinar color de estado
+    Color statusColor = offer.estado.toLowerCase() == 'activo'
+        ? AppThemes.primaryColor
+        : AppThemes.errorColor;
 
-  // Construcción de los detalles en texto para el subtítulo
-  String detailsText = details.isNotEmpty
-      ? details.map((detail) {
-          final unidadMedida = _unidadesMedida.firstWhere(
-            (u) => u.id == detail.idUnidadMedida,
-            orElse: () => UnidadMedida(id: 0, nombre: 'Desconocida'),
-          );
+    // Construcción de los detalles en texto para el subtítulo
+    String detailsText = details.isNotEmpty
+        ? details.map((detail) {
+            final unidadMedida = ofertaService.getUnidadMedidaById(detail.idUnidadMedida) ??
+                UnidadMedida(id: 0, nombre: 'Desconocida');
 
-          final moneda = _monedas.firstWhere(
-            (m) => m.id == detail.idMoneda,
-            orElse: () => Moneda(id: 0, nombre: 'Desconocida'),
-          );
+            final moneda = ofertaService.getMonedaById(detail.idMoneda) ??
+                Moneda(id: 0, nombre: 'Desconocida');
 
-          return '''
+            return '''
 Descripción: ${detail.descripcion ?? 'Sin descripción'}
 Cantidad Física: ${detail.cantidadFisico} ${unidadMedida.nombre}
 Cantidad Comprometida: ${detail.cantidadComprometido ?? 0} ${unidadMedida.nombre}
@@ -152,107 +101,152 @@ Precio Total: ${detail.precio.toStringAsFixed(2)} ${moneda.nombre}
 Precio Unitario: ${(detail.precioUnitario ?? 0).toStringAsFixed(2)} ${moneda.nombre}/${unidadMedida.nombre}
 Estado: ${detail.estado}
 ''';
-        }).join('\n')
-      : 'No hay detalles asociados.';
+          }).join('\n')
+        : 'No hay detalles asociados.';
 
-  return CustomCard(
-    title: 'Oferta: ${produccion.descripcion}',
-    subtitle:
-        'Estado: ${offer.estado}\nCreado: ${_formatter.format(offer.fechaCreacion)}\nExpira: ${_formatter.format(offer.fechaExpiracion)}\n\nDetalles:\n$detailsText',
-    icon: Icons.local_offer_outlined,
-    status: offer.estado,
-    statusColor: statusColor,
-    onTap: () {
-      if (details.isNotEmpty) {
-        _editOferta(offer, details.first);
-      }
-    },
-  );
-}
-
-
-  /// Lista de ofertas
-Widget _buildOffersList() {
-  if (_offers.isEmpty) {
-    return Center(
-      child: Text(
-        'No hay ofertas disponibles.',
-        style: Theme.of(context).textTheme.headlineSmall,
+    return FadeTransition(
+      opacity: _animationController,
+      child: GestureDetector(
+        onLongPress: () => _deleteOferta(offer),
+        child: CustomCard(
+          title: 'Oferta: ${produccion.descripcion}',
+          subtitle:
+              'Estado: ${offer.estado}\nCreado: ${DateFormat('dd MMM yyyy').format(offer.fechaCreacion)}\nExpira: ${DateFormat('dd MMM yyyy').format(offer.fechaExpiracion)}\n\nDetalles:\n$detailsText',
+          icon: Icons.local_offer_outlined,
+          status: offer.estado,
+          statusColor: statusColor,
+          onTap: () {
+            if (details.isNotEmpty) {
+              _editOferta(offer, details.first);
+            }
+          },
+        ),
       ),
     );
   }
 
-  return ListView.builder(
-    padding: EdgeInsets.symmetric(vertical: 16.h),
-    itemCount: _offers.length,
-    itemBuilder: (context, index) {
-      return _buildCombinedOfferCard(_offers[index]);
-    },
-  );
-}
+  /// Lista de ofertas
+  Widget _buildOffersList() {
+    if (ofertaService.isLoading) {
+      return Center(
+        child: CircularProgressIndicator(
+          color: AppThemes.primaryColor,
+        ),
+      );
+    }
 
+    if (ofertaService.errorMessage.isNotEmpty) {
+      return Center(
+        child: Text(
+          ofertaService.errorMessage,
+          style: TextStyle(color: AppThemes.errorColor, fontSize: 16.sp),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    if (ofertaService.ofertas.isEmpty) {
+      return Center(
+        child: Text(
+          'No hay ofertas disponibles.',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: AppThemes.primaryColor,
+              ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(vertical: 16.h),
+      itemCount: ofertaService.ofertas.length,
+      itemBuilder: (context, index) {
+        final offer = ofertaService.ofertas[index];
+        return _buildCombinedOfferCard(offer);
+      },
+    );
+  }
 
   /// Botón flotante para agregar oferta
   Widget _buildFloatingActionButton() {
     return FloatingActionButton(
       backgroundColor: AppThemes.primaryColor,
       child: const Icon(Icons.add, color: AppThemes.secondaryColor),
-      onPressed: _showAddOfertaDialog,
+      onPressed: () => _showAddOfertaDialog(),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.0),
+        side: BorderSide(color: AppThemes.accentColor, width: 2.0),
+      ),
     );
   }
 
   /// Mostrar diálogo para agregar oferta
-void _showAddOfertaDialog() {
-  if (_producciones.isEmpty || _unidadesMedida.isEmpty || _monedas.isEmpty) {
-    _showSnackBar('Datos incompletos. No se puede crear una oferta.', AppThemes.errorColor);
-    return;
-  }
+  Future<void> _showAddOfertaDialog() async {
+    if (ofertaService.producciones.isEmpty ||
+        ofertaService.unidadesMedida.isEmpty ||
+        ofertaService.monedas.isEmpty) {
+      _showSnackBar('Datos incompletos. No se puede crear una oferta.', AppThemes.errorColor);
+      return;
+    }
 
-  showDialog(
-    context: context,
-    builder: (BuildContext dialogContext) => Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20.0),
-        side: BorderSide(color: AppThemes.borderColor, width: 2.0),
-      ),
-      backgroundColor: AppThemes.surfaceColor,
-      child: AddOfertaForm(
-        agricultorId: widget.agricultorId,
-        producciones: _producciones,
-        unidadesMedida: _unidadesMedida,
-        monedas: _monedas,
-        onOfertaCreated: (newOferta) {
-          setState(() => _offers.add(newOferta));
-        },
-      ),
-    ),
-  );
-}
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    ScreenUtil.init(context);
-
-    return Scaffold(
-      backgroundColor: AppThemes.backgroundColor,
-      appBar: AppBar(
-        title: const Text('Ofertas'),
-        centerTitle: true,
-        backgroundColor: AppThemes.primaryColor,
-      ),
-      body: SafeArea(
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator())
-            : _buildOffersList(),
-      ),
-      floatingActionButton: _buildFloatingActionButton(),
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+            side: BorderSide(color: AppThemes.borderColor, width: 2.0),
+          ),
+          backgroundColor: AppThemes.surfaceColor,
+          child: AddOfertaForm(
+            ofertaService: ofertaService,
+            onSuccess: (result) {
+              _showSnackBar('Oferta creada exitosamente.', AppThemes.successColor);
+            },
+          ),
+        );
+      },
     );
+
+    if (result != null && result.isNotEmpty) {
+      // Esto ya se maneja en el callback onSuccess
+    } else if (ofertaService.errorMessage.isNotEmpty) {
+      _showSnackBar(ofertaService.errorMessage, AppThemes.errorColor);
+    }
+  }
+
+  /// Mostrar diálogo para editar oferta
+  Future<void> _editOferta(Oferta offer, OfertaDetalle detail) async {
+    if (ofertaService.producciones.isEmpty ||
+        ofertaService.unidadesMedida.isEmpty ||
+        ofertaService.monedas.isEmpty) {
+      _showSnackBar('Datos incompletos. No se puede editar la oferta.', AppThemes.errorColor);
+      return;
+    }
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          child: AddOfertaForm(
+            ofertaService: ofertaService,
+            ofertaToEdit: offer,
+            detalleToEdit: detail,
+            onSuccess: (result) {
+              _showSnackBar('Oferta actualizada exitosamente.', AppThemes.successColor);
+            },
+          ),
+        );
+      },
+    );
+
+    if (result != null && result.isNotEmpty) {
+      // Esto ya se maneja en el callback onSuccess
+    } else if (ofertaService.errorMessage.isNotEmpty) {
+      _showSnackBar(ofertaService.errorMessage, AppThemes.errorColor);
+    }
   }
 
   /// Eliminar oferta
@@ -265,62 +259,58 @@ void _showAddOfertaDialog() {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppThemes.accentColor),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Eliminar'),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: AppThemes.errorColor),
+            ),
           ),
         ],
       ),
     );
 
     if (confirm == true) {
-      try {
-        await _apiService.deleteOferta(offer.id);
-        setState(() {
-          _offers.remove(offer);
-        });
-        _showSnackBar('Oferta eliminada exitosamente.', AppThemes.primaryColor);
-      } catch (e) {
-        _showSnackBar('Error al eliminar la oferta.', AppThemes.errorColor);
+      await ofertaService.deleteOferta(offer.id!);
+      if (ofertaService.errorMessage.isEmpty) {
+        _showSnackBar('Oferta eliminada exitosamente.', AppThemes.successColor);
+      } else {
+        _showSnackBar(ofertaService.errorMessage, AppThemes.errorColor);
       }
     }
   }
 
-  /// Editar oferta
-/// Editar oferta
-void _editOferta(Oferta offer, OfertaDetalle detail) {
-  if (_producciones.isEmpty || _unidadesMedida.isEmpty || _monedas.isEmpty) {
-    _showSnackBar('Datos incompletos. No se puede editar la oferta.', AppThemes.errorColor);
-    return;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppThemes.backgroundColor,
+      appBar: AppBar(
+        title: const Text('Ofertas'),
+        centerTitle: true,
+        backgroundColor: AppThemes.primaryColor,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: AppThemes.secondaryColor),
+            onPressed: () async {
+              await ofertaService.fetchAllData();
+              if (ofertaService.errorMessage.isNotEmpty) {
+                _showSnackBar(ofertaService.errorMessage, AppThemes.errorColor);
+              } else {
+                _showSnackBar('Datos actualizados.', AppThemes.successColor);
+              }
+            },
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: _buildOffersList(),
+      ),
+      floatingActionButton: _buildFloatingActionButton(),
+    );
   }
-
-  showDialog(
-    context: context,
-    builder: (BuildContext dialogContext) => Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20.0),
-      ),
-      child: AddOfertaForm(
-        agricultorId: widget.agricultorId,
-        producciones: _producciones, // Pasar las producciones
-        unidadesMedida: _unidadesMedida, // Pasar las unidades de medida
-        monedas: _monedas, // Pasar las monedas
-        ofertaToEdit: offer,
-        detalleToEdit: detail,
-        onOfertaUpdated: (updatedOferta) {
-          setState(() {
-            final index = _offers.indexWhere((o) => o.id == updatedOferta.id);
-            if (index != -1) {
-              _offers[index] = updatedOferta;
-            }
-          });
-          Navigator.pop(dialogContext);
-        },
-      ),
-    ),
-  );
-}
-
 }
