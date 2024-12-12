@@ -30,7 +30,21 @@ class _SplashScreenState extends State<SplashScreen> {
         AppRoutes.home,
         arguments: agricultorId,
       );
-    } else {
+      
+    } 
+        if (prefs.containsKey('clienteId')) {
+      // Obtener agricultorId de las preferencias
+      int clienteId = prefs.getInt('clienteId')!;
+      AppNavegador.instance.setAgricultorId(clienteId);
+
+      // Navegar al HomeScreen automáticamente
+      AppNavegador.instance.reemplazarCon(
+        AppRoutes.home_cliente,
+        arguments: clienteId,
+      );
+      
+    }
+    else {
       // Navegar al LoginScreen si no hay agricultorId
       AppNavegador.instance.reemplazarCon(AppRoutes.login);
     }

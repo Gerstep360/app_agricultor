@@ -12,12 +12,27 @@ import 'package:agromarket_app/models/Agricultor/producto.dart';
 import 'package:agromarket_app/models/Agricultor/temporada.dart';
 import 'package:agromarket_app/models/Agricultor/carga_oferta.dart';
 
+import 'package:agromarket_app/models/Cliente/carga_pedido.dart';
+import 'package:agromarket_app/models/Cliente/categoria.dart';
+import 'package:agromarket_app/models/Cliente/cliente.dart';
+import 'package:agromarket_app/models/Cliente/pedido_detalle.dart';
+import 'package:agromarket_app/models/Cliente/pedidos.dart';
+import 'package:agromarket_app/models/Cliente/ruta_pedido.dart';
+
 class ApiService {
+    // Constructor privado
+
+
   final String baseUrl;
 
   ApiService({String? baseUrl})
       : baseUrl = baseUrl ?? 'http://srv640327.hstgr.cloud:8080/api/v1';
-
+    // Headers comunes
+  Map<String, String> get headers => {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        // Agrega aquí cualquier otro encabezado necesario, como autenticación
+      };
   Future<dynamic> get(String endpoint) async {
     final response = await http.get(Uri.parse('$baseUrl$endpoint'));
 
@@ -578,4 +593,92 @@ Future<List<CargaOferta>> CargaOferta_getCargasByEstado(String estado) async {
     return (data as List).map((json) => CargaOferta.fromJson(json)).toList();
   }
 
+
+
+  //Cliente
+
+  // Obtener todos los Clientes
+  Future<List<Cliente>> Cliente_getClientes() async {
+  final data = await get('/clientes');
+  return (data as List).map((json) => Cliente.fromJson(json)).toList();
+}
+
+
+  // Crear un nuevo Cliente
+  Future<Cliente> Cliente_createCliente(
+      Map<String, dynamic> clienteData) async {
+    final data = await post('/clientes', clienteData);
+    return Cliente.fromJson(data);
+  }
+
+  // Mostrar detalles de un Cliente específico
+  Future<Cliente> Cliente_getCliente(int id) async {
+    final data = await get('/clientes/$id');
+    return Cliente.fromJson(data);
+  }
+
+  // Actualizar datos de un Cliente
+  Future<Cliente> Cliente_updateCliente(
+      int id, Map<String, dynamic> clienteData) async {
+    final data = await put('/clientes/$id', clienteData);
+    return Cliente.fromJson(data);
+  }
+
+  // Eliminar un Cliente
+  Future<void> Cliente_deleteCliente(int id) async {
+    await delete('/clientes/$id');
+  }
+
+// Obtener los pedidos de un cliente específico
+  Future<List<Pedidos>> Cliente_getPedidos(int clienteId) async {
+  final data = await get('/clientes/$clienteId/pedidos');
+  return (data as List).map((json) => Pedidos.fromJson(json)).toList();
+}
+
+// Crear un nuevo pedido
+Future<Pedidos> Cliente_createPedido(int clienteId, List<Map<String, dynamic>> pedidoDetalles) async {
+  final data = await post('/clientes/$clienteId/pedidos', {'detalles': pedidoDetalles});
+  return Pedidos.fromJson(data);
+}
+
+// Obtener detalles de un pedido específico
+  /// Obtener los pedidos de un cliente específico.
+  Future<List<Pedidos>> getPedidosByCliente(int clienteId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/clientes/$clienteId/pedidos'),
+      headers: headers,
+    );
+    final data = _processResponse(response, 'getPedidosByCliente');
+
+    if (data is List) {
+      return data.map((json) => Pedidos.fromJson(json as Map<String, dynamic>)).toList();
+    } else if (data is Map<String, dynamic> && data.containsKey('data')) {
+      // Si la API envía los pedidos dentro de una clave 'data'
+      final List<dynamic> pedidosJson = data['data'];
+      return pedidosJson.map((json) => Pedidos.fromJson(json as Map<String, dynamic>)).toList();
+    } else {
+      throw Exception('Formato de respuesta inesperado para getPedidosByCliente');
+    }
+  }
+
+  Future<Cliente> updateCliente(
+      int id, Map<String, dynamic> clientData) async {
+    final data = await put('/clientes/$id', clientData);
+    return Cliente.fromJson(data);
+  }
+    /// Crear un nuevo pedido.
+  Future<Pedidos> createPedido(Map<String, dynamic> pedidoData) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/pedidos'),
+      headers: headers,
+      body: jsonEncode(pedidoData),
+    );
+    final data = _processResponse(response, 'createPedido');
+
+    if (data is Map<String, dynamic>) {
+      return Pedidos.fromJson(data);
+    } else {
+      throw Exception('Formato de respuesta inesperado para createPedido');
+    }
+  }
 }

@@ -299,7 +299,7 @@ class CustomCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 8.h, horizontal: 16.w),
+        margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
         decoration: BoxDecoration(
           color: AppThemes.surfaceColor, // Fondo verde oscuro
           borderRadius: BorderRadius.circular(20.0),
@@ -316,7 +316,7 @@ class CustomCard extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: EdgeInsets.all(16.w),
+          padding: EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -325,7 +325,7 @@ class CustomCard extends StatelessWidget {
                   Icon(
                     icon,
                     color: AppThemes.accentColor, // Icono en rosa claro
-                    size: 40.sp,
+                    size: 40.0,
                     shadows: [
                       Shadow(
                         color: AppThemes.borderColor,
@@ -333,7 +333,7 @@ class CustomCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(width: 16.w),
+                  SizedBox(width: 16.0),
                   Expanded(
                     child: Text(
                       title,
@@ -351,7 +351,7 @@ class CustomCard extends StatelessWidget {
                   ),
                 ],
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: 8.0),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(

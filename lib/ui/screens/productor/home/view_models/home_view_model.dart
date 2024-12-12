@@ -3,8 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:agromarket_app/services/api_service.dart';
-import 'package:agromarket_app/ui/screens/auth/login_screen.dart';
-
+import 'package:agromarket_app/ui/screens/Roles/role_selection_screen.dart';
 class HomeViewModel extends ChangeNotifier {
   final int agricultorId;
   bool isLoading = false;
@@ -40,7 +39,7 @@ class HomeViewModel extends ChangeNotifier {
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) => RoleSelectionScreen()),
     );
   }
 
