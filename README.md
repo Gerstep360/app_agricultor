@@ -52,3 +52,4 @@ Pasos de Configuración
        flutter run -d windows
 
 Estos pasos deberían restaurar los archivos de configuración para Windows y resolver los errores de compilación.
+
